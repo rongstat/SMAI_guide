@@ -382,7 +382,8 @@ library(batchelor)</code></pre>
 <h2>Load datasets</h2>
 <p>Load the human peripheral blood mononuclear cell (PBMC) dataset from
 the R package <code>SeuratData</code>.</p>
-<pre class="r"><code>LoadData(&quot;pbmcsca&quot;)
+<pre class="r"><code>InstallData(&quot;pbmcsca&quot;)
+LoadData(&quot;pbmcsca&quot;)
 # split the dataset into a list
 data.list &lt;- SplitObject(pbmcsca, split.by = &quot;Method&quot;)
 data.X1 = as.matrix(data.list$`10x Chromium (v2)`@assays$RNA@counts)
