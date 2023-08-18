@@ -445,8 +445,8 @@ respectively.</p>
 <h2>Run SMAI</h2>
 <p>Here we consider testing for partial alignability. The null
 hypothesis is that there exists subsets of the two datasets containing
-at least 60% (i.e., <code>prop.align</code>*2) of the samples that are
-alignable up to similarity transformation.</p>
+at least 60% (i.e., <code>prop.palign=0.6</code>) of the samples that
+are alignable up to similarity transformation.</p>
 <div id="identify-maximal-correspondence-subsets" class="section level4">
 <h4>Identify maximal correspondence subsets</h4>
 <p>We first identifty subsets of both datasets with maximal
@@ -462,24 +462,33 @@ dim(data.combined@assays$integrated@data)
 #get integrated data
 data1=as.matrix(data.combined@assays$integrated@data[,1:length(ct.X1)])
 data2=as.matrix(data.combined@assays$integrated@data[,(length(ct.X1)+1):(length(ct.X1)+length(ct.X2))])
+#set the proportion of partially alignable samples to be tested against
+prop.palign = 0.6
 #mutual nearest neighbor matching
-mnn.out = findMutualNN(t(data1),t(data2), k1=15) 
-prop.align.par = min(c(length(unique(mnn.out$first))/dim(data1)[2],
+k1=15
+prop.mc=0
+while(prop.mc&lt;prop.palign/2+0.05){
+mnn.out = findMutualNN(t(data1),t(data2), k1=k1) 
+prop.mc = min(c(length(unique(mnn.out$first))/dim(data1)[2],
                        length(unique(mnn.out$second))/dim(data2)[2]))
-prop.align.par</code></pre>
-<p>We recommend choosing <code>k1</code> so that the maximal
-correspondence subsets contain about 40-50% of the samples in each
-dataset, that is, <code>prop.align.par</code> lies in between 0.4 and
-0.5. Note that <code>prop.align.par</code> should always be non-smaller
-than the <code>prop.align</code> parameter in the SMAI function
-<code>align()</code>.</p>
+k1=k1+5
+}</code></pre>
+<p>The parameter <code>prop.palign</code> defines the proportion of
+partially alignable samples in both datasets, to be tested agasint. For
+example, if <code>prop.palign=0.6</code>, our null hypothesis states
+that “at least 60% of the samples in each dataset are alignable.” The
+parameter <code>k1</code> in <code>findNutualNN</code> is chosen so that
+the maximal correspondence subsets is sufficiently large for downstream
+testing. Note that in principle <code>prop.align.par</code> should
+always be non-smaller than the <code>prop.align</code> parameter in the
+SMAI function <code>align()</code>.</p>
 </div>
 <div id="smai-for-alignability-testing-and-data-integration" class="section level4">
 <h4>SMAI for alignability testing and data integration</h4>
 <pre class="r"><code>set.seed(8)
 out.smai &lt;- align(data.X1.smai, data.X2.smai, sel1=unique(mnn.out$first),  sel2=unique(mnn.out$second),
                   t=3, knn=30, r.max=200, dir.map = &quot;auto&quot;,  denoise=&quot;scree&quot;,
-                  prop.align=0.3,  cutoff = 1.001, cutoff.t=1.5)</code></pre>
+                  prop.align=prop.palign/2,  cutoff = 1.001, cutoff.t=1.5)</code></pre>
 <pre><code>## [1] &quot;iteration 1: sample space aligned!&quot;
 ## [1] &quot;iteration 1: feature space aligned!&quot;
 ## [1] &quot;iteration 2: sample space aligned!&quot;
@@ -495,7 +504,25 @@ out.smai &lt;- align(data.X1.smai, data.X2.smai, sel1=unique(mnn.out$first),  se
 <p>If p-value is smaller than 0.05, it suggests the two datasets are not
 alignable. Otherwise, the data do not contain sufficient evidence for
 rejecting the (partial) alignability hypothesis. Here the p-value
-suggests the datasets to be <strong>alignable</strong>.</p>
+suggests the datasets to be <strong>alignable</strong>. Note that the
+final p-value may differ under different random seeds. This is because
+for partial alignability test, a sample splitting procedure is used to
+ensure the validity of the test. In fact, one may benefit from such
+randomness by repeating the test under various random seeds, to evaluate
+the robustness/stability of the test results with respect to
+resampling.</p>
+<p>The integrated datasets are stored as
+<code>out.smai$data1.integrate</code> and
+<code>out.smai$data2.integrate</code>, whereas the parameters
+characterizing the final alignment function is stored in
+<code>out.smai$gamma</code>, <code>out.smai$beta</code>, and
+<code>out.smai$feature.rot</code>. Note that the final integrated
+datasets will be returned regardless the significance of the p-value.
+The test essentially indicates the goodness-of-fit of the data
+generative model motivating the proposed alignment procedure, but does
+not affect the execution of the alignment algorithm. One should use
+caution or even not work with the integrated data if a significant
+p-value is returned.</p>
 </div>
 </div>
 <div id="some-further-analysis" class="section level2">
